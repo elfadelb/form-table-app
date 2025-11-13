@@ -2,32 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Form → Table (saved to JSON)</title>
+  <title>Match Table + Excel Export</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 800px; margin:auto; }
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 900px; margin:auto; }
     h1 { margin-bottom: 10px; }
-    input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 8px 14px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
+    input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; width:130px; }
+    button { padding: 6px 12px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
     table { width:100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border:1px solid #ddd; padding:8px; text-align:left; }
     th { background:#f3f3f3; }
+    .action-btn { background:#ef4444; }
+    .edit-btn { background:#f59e0b; }
   </style>
 </head>
 <body>
-  <h1>Save Table Data to JSON File</h1>
+  <h1>Match Table + Excel Export</h1>
 
   <form id="entryForm">
-    <input id="field1" placeholder="Name" required>
-    <input id="field2" placeholder="Email" required>
-    <input id="field3" placeholder="Phone">
-    <input id="field4" placeholder="City">
-    <input id="field5" placeholder="Note">
+    <input id="tarih" placeholder="Tarih" required>
+    <input id="macSaati" placeholder="Maç Saati" required>
+    <input id="nakit" placeholder="Nakit" type="number">
+    <input id="fis" placeholder="Fiş" type="number">
+    <input id="su" placeholder="Su" type="number">
+    <input id="toplam" placeholder="Toplam" type="number">
     <button type="submit">Add Row</button>
+    <button type="button" id="downloadBtn">Download Excel</button>
   </form>
 
   <table id="dataTable">
     <thead>
-      <tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>City</th><th>Note</th></tr>
+      <tr>
+        <th>#</th>
+        <th>Tarih</th>
+        <th>Maç Saati</th>
+        <th>Nakit</th>
+        <th>Fiş</th>
+        <th>Su</th>
+        <th>Toplam</th>
+        <th>Actions</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -35,29 +49,42 @@
   <script>
     const form = document.getElementById("entryForm");
     const tableBody = document.querySelector("#dataTable tbody");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let rows = [];
 
     async function loadTable() {
       const res = await fetch("/api/data");
-      const data = await res.json();
-      tableBody.innerHTML = data.map((r,i)=>`
+      rows = await res.json();
+      renderTable();
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = rows.map((r,i)=>`
         <tr>
           <td>${i+1}</td>
-          <td>${r.field1}</td>
-          <td>${r.field2}</td>
-          <td>${r.field3}</td>
-          <td>${r.field4}</td>
-          <td>${r.field5}</td>
+          <td>${r.tarih}</td>
+          <td>${r.macSaati}</td>
+          <td>${r.nakit}</td>
+          <td>${r.fis}</td>
+          <td>${r.su}</td>
+          <td>${r.toplam}</td>
+          <td>
+            <button class="edit-btn" data-index="${i}">Edit</button>
+            <button class="action-btn" data-index="${i}">Delete</button>
+          </td>
         </tr>`).join('');
     }
 
     form.addEventListener("submit", async e => {
       e.preventDefault();
       const row = {
-        field1: field1.value,
-        field2: field2.value,
-        field3: field3.value,
-        field4: field4.value,
-        field5: field5.value
+        tarih: tarih.value,
+        macSaati: macSaati.value,
+        nakit: nakit.value,
+        fis: fis.value,
+        su: su.value,
+        toplam: toplam.value
       };
       await fetch("/api/add", {
         method: "POST",
@@ -66,6 +93,41 @@
       });
       form.reset();
       loadTable();
+    });
+
+    tableBody.addEventListener("click", async e => {
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const idx = btn.dataset.index;
+
+      if(btn.classList.contains("action-btn")) {
+        rows.splice(idx,1);
+        renderTable();
+        // optionally persist deletion to server
+      }
+
+      if(btn.classList.contains("edit-btn")) {
+        const r = rows[idx];
+        tarih.value = r.tarih;
+        macSaati.value = r.macSaati;
+        nakit.value = r.nakit;
+        fis.value = r.fis;
+        su.value = r.su;
+        toplam.value = r.toplam;
+        rows.splice(idx,1);
+        renderTable();
+        // optionally persist edit to server
+      }
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      if(rows.length === 0) return alert("No rows to download");
+      const aoa = [["#", "Tarih","Maç Saati","Nakit","Fiş","Su","Toplam"]];
+      rows.forEach((r,i)=>aoa.push([i+1, r.tarih,r.macSaati,r.nakit,r.fis,r.su,r.toplam]));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      XLSX.writeFile(wb, `match_table_${Date.now()}.xlsx`);
     });
 
     loadTable();
