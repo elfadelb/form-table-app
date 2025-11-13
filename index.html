@@ -5,7 +5,7 @@
   <title>Match Table + Excel Export</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 900px; margin:auto; }
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 1000px; margin:auto; }
     h1 { margin-bottom: 10px; }
     input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; width:130px; }
     button { padding: 6px 12px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
@@ -20,12 +20,13 @@
   <h1>Match Table + Excel Export</h1>
 
   <form id="entryForm">
-    <input id="tarih" placeholder="Tarih" required>
-    <input id="macSaati" placeholder="Maç Saati" required>
-    <input id="nakit" placeholder="Nakit" type="number">
-    <input id="fis" placeholder="Fiş" type="number">
-    <input id="su" placeholder="Su" type="number">
-    <input id="toplam" placeholder="Toplam" type="number">
+    <input id="tarih" placeholder="TARİH" required>
+    <input id="macSayisi" placeholder="MAÇ SAYISI" required type="number">
+    <input id="macSaatleri" placeholder="MAÇ SAATLERİ" required>
+    <input id="nakit" placeholder="NAKİT" type="number">
+    <input id="fis" placeholder="FİŞ" type="number">
+    <input id="su" placeholder="SU" type="number">
+    <input id="toplam" placeholder="TOPLAM" type="number">
     <button type="submit">Add Row</button>
     <button type="button" id="downloadBtn">Download Excel</button>
   </form>
@@ -34,12 +35,13 @@
     <thead>
       <tr>
         <th>#</th>
-        <th>Tarih</th>
-        <th>Maç Saati</th>
-        <th>Nakit</th>
-        <th>Fiş</th>
-        <th>Su</th>
-        <th>Toplam</th>
+        <th>TARİH</th>
+        <th>MAÇ SAYISI</th>
+        <th>MAÇ SAATLERİ</th>
+        <th>NAKİT</th>
+        <th>FİŞ</th>
+        <th>SU</th>
+        <th>TOPLAM</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -64,7 +66,8 @@
         <tr>
           <td>${i+1}</td>
           <td>${r.tarih}</td>
-          <td>${r.macSaati}</td>
+          <td>${r.macSayisi}</td>
+          <td>${r.macSaatleri}</td>
           <td>${r.nakit}</td>
           <td>${r.fis}</td>
           <td>${r.su}</td>
@@ -80,7 +83,8 @@
       e.preventDefault();
       const row = {
         tarih: tarih.value,
-        macSaati: macSaati.value,
+        macSayisi: macSayisi.value,
+        macSaatleri: macSaatleri.value,
         nakit: nakit.value,
         fis: fis.value,
         su: su.value,
@@ -98,36 +102,68 @@
     tableBody.addEventListener("click", async e => {
       const btn = e.target.closest("button");
       if(!btn) return;
-      const idx = btn.dataset.index;
+      const idx = Number(btn.dataset.index);
 
       if(btn.classList.contains("action-btn")) {
-        rows.splice(idx,1);
-        renderTable();
-        // optionally persist deletion to server
+        await fetch("/api/delete-row", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ index: idx })
+        });
+        loadTable();
       }
 
       if(btn.classList.contains("edit-btn")) {
         const r = rows[idx];
         tarih.value = r.tarih;
-        macSaati.value = r.macSaati;
+        macSayisi.value = r.macSayisi;
+        macSaatleri.value = r.macSaatleri;
         nakit.value = r.nakit;
         fis.value = r.fis;
         su.value = r.su;
         toplam.value = r.toplam;
-        rows.splice(idx,1);
-        renderTable();
-        // optionally persist edit to server
+
+        // Delete current row before editing
+        await fetch("/api/delete-row", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ index: idx })
+        });
+
+        loadTable();
       }
     });
 
     downloadBtn.addEventListener("click", () => {
-      if(rows.length === 0) return alert("No rows to download");
-      const aoa = [["#", "Tarih","Maç Saati","Nakit","Fiş","Su","Toplam"]];
-      rows.forEach((r,i)=>aoa.push([i+1, r.tarih,r.macSaati,r.nakit,r.fis,r.su,r.toplam]));
+      if (rows.length === 0) return alert("No rows to download");
+
+      const aoa = [["#", "TARİH","MAÇ SAYISI","MAÇ SAATLERİ","NAKİT","FİŞ","SU","TOPLAM"]];
+      rows.forEach((r,i) => aoa.push([i+1,r.tarih,r.macSayisi,r.macSaatleri,r.nakit,r.fis,r.su,r.toplam]));
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-      XLSX.writeFile(wb, `match_table_${Date.now()}.xlsx`);
+
+      ws['!cols'] = [
+        { wpx: 30 },
+        { wpx: 100 },
+        { wpx: 90 },
+        { wpx: 120 },
+        { wpx: 60 },
+        { wpx: 60 },
+        { wpx: 60 },
+        { wpx: 80 }
+      ];
+
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for(let C = range.s.c; C <= range.e.c; ++C) {
+        const cell = ws[XLSX.utils.encode_cell({r:0, c:C})];
+        if(!cell.s) cell.s = {};
+        cell.s.font = { bold: true };
+        cell.s.alignment = { horizontal: "center" };
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, "MatchTable");
+      XLSX.writeFile(wb, `MatchTable_${Date.now()}.xlsx`);
     });
 
     loadTable();
