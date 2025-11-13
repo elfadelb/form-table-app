@@ -15,6 +15,7 @@ app.use(express.static(__dirname));
 
 let rows = [];
 
+// Load existing data
 if (fs.existsSync(DATA_FILE)) {
   try {
     rows = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
@@ -24,16 +25,27 @@ if (fs.existsSync(DATA_FILE)) {
   }
 }
 
+// Get all rows
 app.get("/api/data", (req, res) => {
   res.json(rows);
 });
 
+// Add a new row
 app.post("/api/add", (req, res) => {
   const row = req.body;
-  if (!row.field1 || !row.field2) {
-    return res.status(400).json({ error: "Name and Email required" });
+  if (!row.tarih || !row.macSaati) {
+    return res.status(400).json({ error: "Tarih and Maç Saati required" });
   }
   rows.push(row);
+  fs.writeFileSync(DATA_FILE, JSON.stringify(rows, null, 2));
+  res.json({ ok: true });
+});
+
+// Overwrite all rows (for edit/delete persistence)
+app.post("/api/update", (req, res) => {
+  const newRows = req.body;
+  if (!Array.isArray(newRows)) return res.status(400).json({ error: "Expected array" });
+  rows = newRows;
   fs.writeFileSync(DATA_FILE, JSON.stringify(rows, null, 2));
   res.json({ ok: true });
 });
