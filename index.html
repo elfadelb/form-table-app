@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Form → Table (saved to JSON)</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 800px; margin:auto; }
+    h1 { margin-bottom: 10px; }
+    input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 14px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
+    table { width:100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left; }
+    th { background:#f3f3f3; }
+  </style>
+</head>
+<body>
+  <h1>Save Table Data to JSON File</h1>
+
+  <form id="entryForm">
+    <input id="field1" placeholder="Name" required>
+    <input id="field2" placeholder="Email" required>
+    <input id="field3" placeholder="Phone">
+    <input id="field4" placeholder="City">
+    <input id="field5" placeholder="Note">
+    <button type="submit">Add Row</button>
+  </form>
+
+  <table id="dataTable">
+    <thead>
+      <tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>City</th><th>Note</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById("entryForm");
+    const tableBody = document.querySelector("#dataTable tbody");
+
+    async function loadTable() {
+      const res = await fetch("/api/data");
+      const data = await res.json();
+      tableBody.innerHTML = data.map((r,i)=>`
+        <tr>
+          <td>${i+1}</td>
+          <td>${r.field1}</td>
+          <td>${r.field2}</td>
+          <td>${r.field3}</td>
+          <td>${r.field4}</td>
+          <td>${r.field5}</td>
+        </tr>`).join('');
+    }
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const row = {
+        field1: field1.value,
+        field2: field2.value,
+        field3: field3.value,
+        field4: field4.value,
+        field5: field5.value
+      };
+      await fetch("/api/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(row)
+      });
+      form.reset();
+      loadTable();
+    });
+
+    loadTable();
+  </script>
+</body>
+</html>
