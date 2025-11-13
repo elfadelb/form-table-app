@@ -1,16 +1,1 @@
-[
-  {
-    "field1": "John Doe",
-    "field2": "john@example.com",
-    "field3": "+90 555 123 4567",
-    "field4": "Istanbul",
-    "field5": "Test entry"
-  },
-  {
-    "field1": "Jane Smith",
-    "field2": "jane@domain.com",
-    "field3": "+90 530 987 6543",
-    "field4": "Ankara",
-    "field5": "Another test entry"
-  }
-]
+[]
