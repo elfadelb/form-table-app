@@ -15,41 +15,54 @@ app.use(express.static(__dirname));
 
 let rows = [];
 
-// Load existing data
-if (fs.existsSync(DATA_FILE)) {
-  try {
-    rows = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-  } catch (err) {
-    console.error("Error reading data.json:", err);
-    rows = [];
+// Load data from JSON file
+function loadData() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      rows = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    } catch {
+      rows = [];
+    }
   }
 }
 
-// Get all rows
-app.get("/api/data", (req, res) => {
-  res.json(rows);
-});
+// Save data to JSON file
+function saveData() {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(rows, null, 2));
+}
 
-// Add a new row
+loadData();
+
+// Get all rows
+app.get("/api/data", (req, res) => res.json(rows));
+
+// Add new row
 app.post("/api/add", (req, res) => {
   const row = req.body;
-  if (!row.tarih || !row.macSaati) {
-    return res.status(400).json({ error: "Tarih and Maç Saati required" });
+  if (!row.tarih || !row.macSayisi || !row.macSaatleri) {
+    return res.status(400).json({ error: "TARİH, MAÇ SAYISI and MAÇ SAATLERİ are required" });
   }
   rows.push(row);
-  fs.writeFileSync(DATA_FILE, JSON.stringify(rows, null, 2));
+  saveData();
   res.json({ ok: true });
 });
 
-// Overwrite all rows (for edit/delete persistence)
-app.post("/api/update", (req, res) => {
-  const newRows = req.body;
-  if (!Array.isArray(newRows)) return res.status(400).json({ error: "Expected array" });
-  rows = newRows;
-  fs.writeFileSync(DATA_FILE, JSON.stringify(rows, null, 2));
+// Update row by index
+app.post("/api/update-row", (req, res) => {
+  const { index, row } = req.body;
+  if (index === undefined || !row) return res.status(400).json({ error: "Missing index or row" });
+  rows[index] = row;
+  saveData();
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+// Delete row by index
+app.post("/api/delete-row", (req, res) => {
+  const { index } = req.body;
+  if (index === undefined) return res.status(400).json({ error: "Missing index" });
+  rows.splice(index, 1);
+  saveData();
+  res.json({ ok: true });
 });
+
+app.listen(PORT, () => console.log(`✅ Server running at http://localhost:${PORT}`));
