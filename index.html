@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <title>Match Table + Excel Export</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 1000px; margin:auto; }
-    h1 { margin-bottom: 10px; }
-    input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; width:130px; }
-    button { padding: 6px 12px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
-    table { width:100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:left; }
-    th { background:#f3f3f3; }
+    body { font-family: system-ui, Arial; padding: 10px; max-width: 100%; margin:auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 10px; text-align:center; }
+    form { display:flex; flex-wrap: wrap; justify-content: center; }
+    input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; flex: 1 1 45%; min-width:120px; }
+    button { padding: 10px; margin: 5px; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; flex: 1 1 45%; min-width:120px; }
+    table { width:100%; border-collapse: collapse; margin-top: 20px; display:block; overflow-x:auto; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left; white-space: nowrap; }
+    th { background:#f3f3f3; position: sticky; top: 0; z-index: 1; }
     .action-btn { background:#ef4444; }
     .edit-btn { background:#f59e0b; }
   </style>
@@ -31,22 +33,24 @@
     <button type="button" id="downloadBtn">Download Excel</button>
   </form>
 
-  <table id="dataTable">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>TARİH</th>
-        <th>MAÇ SAYISI</th>
-        <th>MAÇ SAATLERİ</th>
-        <th>NAKİT</th>
-        <th>FİŞ</th>
-        <th>SU</th>
-        <th>TOPLAM</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div style="overflow-x:auto;">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>TARİH</th>
+          <th>MAÇ SAYISI</th>
+          <th>MAÇ SAATLERİ</th>
+          <th>NAKİT</th>
+          <th>FİŞ</th>
+          <th>SU</th>
+          <th>TOPLAM</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
     const form = document.getElementById("entryForm");
